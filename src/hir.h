@@ -56,10 +56,11 @@ namespace Lb::hir {
 			}
 		}
 
-		// Adds the specified item to this scope under the specified name,
-		// resolving all free refs who were depending on that name. Dies if
-		// there already exists an item under that name.
-		void resolve_item(std::string name, Item *item) {
+		// Adds the specified item to this scope under the specified name, and
+		// if `bind_existing` is set, also bind all free refs who were
+		// depending on that name; otherwise those refs will remain free. Dies
+		// if there already exists an item under that name.
+		void resolve_item(std::string name, Item *item, bool bind_existing) {
 			auto existing_item_it = this->dict.find(name);
 			if (existing_item_it != this->dict.end()) {
 				std::cerr << "name conflict: " << name << std::endl;
@@ -67,12 +68,14 @@ namespace Lb::hir {
 			}
 
 			const auto [item_it, _] = this->dict.insert(std::make_pair(name, item));
-			auto free_refs_vec_it = this->free_refs.find(name);
-			if (free_refs_vec_it != this->free_refs.end()) {
-				for (ItemRef<Item> *item_ref_ptr : free_refs_vec_it->second) {
-					item_ref_ptr->bind(item_it->second);
+			if (bind_existing) {
+				auto free_refs_vec_it = this->free_refs.find(name);
+				if (free_refs_vec_it != this->free_refs.end()) {
+					for (ItemRef<Item> *item_ref_ptr : free_refs_vec_it->second) {
+						item_ref_ptr->bind(item_it->second);
+					}
+					this->free_refs.erase(free_refs_vec_it);
 				}
-				this->free_refs.erase(free_refs_vec_it);
 			}
 		}
 
@@ -346,6 +349,16 @@ namespace Lb::hir {
 
 		StatementReturn(Opt<Uptr<Expr>> return_value) : return_value { mv(return_value) } {}
 
+		void bind_to_scope(Scope<Nameable> &scope) override;
+		std::string to_string() const override;
+	};
+
+	struct StatementContinue : Statement {
+		void bind_to_scope(Scope<Nameable> &scope) override;
+		std::string to_string() const override;
+	};
+
+	struct StatementBreak : Statement {
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
 	};

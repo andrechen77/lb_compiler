@@ -130,7 +130,7 @@ namespace Lb::hir {
 		if (StatementDeclaration *stmt_decl = dynamic_cast<StatementDeclaration *>(stmt.get())) {
 			for (const std::string &var_name : stmt_decl->variable_names) {
 				Uptr<Variable> var_ptr = mkuptr<Variable>(var_name, stmt_decl->type_name);
-				this->scope.resolve_item(var_name, var_ptr.get());
+				this->scope.resolve_item(var_name, var_ptr.get(), false);
 				this->vars.push_back(mv(var_ptr));
 			}
 		}
@@ -189,6 +189,16 @@ namespace Lb::hir {
 		return result;
 	}
 
+	void StatementContinue::bind_to_scope(Scope<Nameable> &scope) {}
+	std::string StatementContinue::to_string() const {
+		return "continue";
+	}
+
+	void StatementBreak::bind_to_scope(Scope<Nameable> &scope) {}
+	std::string StatementBreak::to_string() const {
+		return "break";
+	}
+
 	void StatementGoto::bind_to_scope(Scope<Nameable> &scope) {}
 	std::string StatementGoto::to_string() const {
 		return "goto :" + this->label_name;
@@ -230,7 +240,7 @@ namespace Lb::hir {
 	}
 	void LbFunction::add_parameter_variable(std::string name, std::string type_name) {
 		Uptr<Variable> var_ptr = mkuptr<Variable>(name, type_name);
-		this->scope.resolve_item(mv(name), var_ptr.get());
+		this->scope.resolve_item(mv(name), var_ptr.get(), true);
 		this->parameter_vars.push_back(mv(var_ptr));
 	}
 
@@ -243,11 +253,11 @@ namespace Lb::hir {
 	}
 	void Program::add_lb_function(Uptr<LbFunction> lb_function) {
 		lb_function->scope.set_parent(this->scope);
-		this->scope.resolve_item(lb_function->get_name(), lb_function.get());
+		this->scope.resolve_item(lb_function->get_name(), lb_function.get(), true);
 		this->lb_functions.push_back(mv(lb_function));
 	}
 	void Program::add_external_function(Uptr<ExternalFunction> external_function) {
-		this->scope.resolve_item(external_function->get_name(), external_function.get());
+		this->scope.resolve_item(external_function->get_name(), external_function.get(), true);
 		this->external_functions.push_back(mv(external_function));
 	}
 
