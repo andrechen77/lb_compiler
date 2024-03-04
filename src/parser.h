@@ -2,6 +2,7 @@
 
 #include "std_alias.h"
 #include "hir.h"
+#include "utils.h"
 #include <memory>
 #include <fstream>
 #include <optional>
