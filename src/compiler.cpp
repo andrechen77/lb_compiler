@@ -1,5 +1,6 @@
 #include "std_alias.h"
 #include "parser.h"
+#include "code_gen.h"
 #include <string>
 #include <vector>
 #include <utility>
@@ -65,6 +66,14 @@ int main(
 		argv[optind],
 		output_parse_tree ? std::make_optional("parse_tree.dot") : Opt<std::string>()
 	);
+
+	if (enable_code_generator) {
+		// auto mir_program = La::hir_to_mir::make_mir_program(*hir_program);
+		std::ofstream o;
+		o.open("prog.a");
+		o << code_gen::generate_program_code(*hir_program);
+		o.close();
+	}
 
 	return 0;
 }

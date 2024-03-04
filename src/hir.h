@@ -293,10 +293,37 @@ namespace Lb::hir {
 		std::string to_string() const override;
 	};
 
+	class StatementBlock;
+	class StatementDeclaration;
+	class StatementAssignment;
+	class StatementLabel;
+	class StatementReturn;
+	class StatementContinue;
+	class StatementBreak;
+	class StatementGoto;
+	class StatementIf;
+	class StatementWhile;
+
+	// interface
+	class StatementVisitor {
+		public:
+		virtual void visit(StatementBlock &stmt) = 0;
+		virtual void visit(StatementDeclaration &stmt) = 0;
+		virtual void visit(StatementAssignment &stmt) = 0;
+		virtual void visit(StatementLabel &stmt) = 0;
+		virtual void visit(StatementReturn &stmt) = 0;
+		virtual void visit(StatementContinue &stmt) = 0;
+		virtual void visit(StatementBreak &stmt) = 0;
+		virtual void visit(StatementGoto &stmt) = 0;
+		virtual void visit(StatementIf &stmt) = 0;
+		virtual void visit(StatementWhile &stmt) = 0;
+	};
+
 	// interface
 	struct Statement {
 		virtual void bind_to_scope(Scope<Nameable> &scope) = 0;
 		virtual std::string to_string() const = 0;
+		virtual void accept(StatementVisitor &v) = 0;
 	};
 
 	struct StatementBlock : Statement {
@@ -309,6 +336,7 @@ namespace Lb::hir {
 		void bind_to_scope(Scope<Nameable> &scope) override; // after binding, the block is frozen
 		void add_next_statement(Uptr<Statement> stmt);
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementDeclaration : Statement {
@@ -321,6 +349,7 @@ namespace Lb::hir {
 
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementAssignment : Statement {
@@ -333,6 +362,7 @@ namespace Lb::hir {
 
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementLabel : Statement {
@@ -342,6 +372,7 @@ namespace Lb::hir {
 
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementReturn : Statement {
@@ -351,16 +382,19 @@ namespace Lb::hir {
 
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementContinue : Statement {
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementBreak : Statement {
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementGoto : Statement {
@@ -370,6 +404,7 @@ namespace Lb::hir {
 
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementIf : Statement {
@@ -383,6 +418,7 @@ namespace Lb::hir {
 
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct StatementWhile : Statement {
@@ -396,6 +432,7 @@ namespace Lb::hir {
 
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;
+		void accept(StatementVisitor &v) override { v.visit(*this); }
 	};
 
 	struct LbFunction : Nameable {
