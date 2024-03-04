@@ -189,6 +189,16 @@ namespace Lb::hir {
 		return result;
 	}
 
+	void StatementContinue::bind_to_scope(Scope<Nameable> &scope) {}
+	std::string StatementContinue::to_string() const {
+		return "continue";
+	}
+
+	void StatementBreak::bind_to_scope(Scope<Nameable> &scope) {}
+	std::string StatementBreak::to_string() const {
+		return "break";
+	}
+
 	void StatementGoto::bind_to_scope(Scope<Nameable> &scope) {}
 	std::string StatementGoto::to_string() const {
 		return "goto :" + this->label_name;

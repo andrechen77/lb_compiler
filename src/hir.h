@@ -353,6 +353,16 @@ namespace Lb::hir {
 		std::string to_string() const override;
 	};
 
+	struct StatementContinue : Statement {
+		void bind_to_scope(Scope<Nameable> &scope) override;
+		std::string to_string() const override;
+	};
+
+	struct StatementBreak : Statement {
+		void bind_to_scope(Scope<Nameable> &scope) override;
+		std::string to_string() const override;
+	};
+
 	struct StatementGoto : Statement {
 		std::string label_name; // TODO consider making it an ItemRef
 
