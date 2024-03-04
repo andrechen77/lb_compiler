@@ -126,14 +126,14 @@ namespace Lb::hir {
 		this->scope.set_parent(scope);
 	}
 	void StatementBlock::add_next_statement(Uptr<Statement> stmt) {
-		stmt->bind_to_scope(this->scope);
 		if (StatementDeclaration *stmt_decl = dynamic_cast<StatementDeclaration *>(stmt.get())) {
-			for (const std::string &var_name : stmt_decl->variable_names) {
+			for (const auto &[var_name, _] : stmt_decl->variables) {
 				Uptr<Variable> var_ptr = mkuptr<Variable>(var_name, stmt_decl->type_name);
 				this->scope.resolve_item(var_name, var_ptr.get(), false);
 				this->vars.push_back(mv(var_ptr));
 			}
 		}
+		stmt->bind_to_scope(this->scope);
 		this->statements.push_back(mv(stmt));
 	}
 	std::string StatementBlock::to_string() const {
@@ -146,13 +146,14 @@ namespace Lb::hir {
 	}
 
 	void StatementDeclaration::bind_to_scope(Scope<Nameable> &scope) {
-		// the variable was already added to the enclosing block, so we don't
-		// need to do anything here
+		for (auto &[_, item_ref] : this->variables) {
+			item_ref->bind_to_scope(scope);
+		}
 	}
 	std::string StatementDeclaration::to_string() const {
 		return this->type_name + " " + utils::format_comma_delineated_list(
-			this->variable_names,
-			[](const std::string &var_name) { return var_name; }
+			this->variables,
+			[](const auto &pair) { return pair.first; }
 		);
 	}
 

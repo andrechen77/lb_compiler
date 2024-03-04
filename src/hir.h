@@ -341,11 +341,15 @@ namespace Lb::hir {
 
 	struct StatementDeclaration : Statement {
 		std::string type_name; // FUTURE we don't really care about representing the type
-		Vec<std::string> variable_names;
+		Vec<Pair<std::string, Uptr<ItemRef<Nameable>>>> variables;
 
 		StatementDeclaration(Vec<std::string> variable_names, std::string type_name) :
-			variable_names { mv(variable_names) }, type_name { mv(type_name) }
-		{}
+			variables {}, type_name { mv(type_name) }
+		{
+			for (const std::string &var_name : variable_names) {
+				this->variables.push_back({ var_name, mkuptr<ItemRef<Nameable>>(var_name) });
+			}
+		}
 
 		void bind_to_scope(Scope<Nameable> &scope) override;
 		std::string to_string() const override;

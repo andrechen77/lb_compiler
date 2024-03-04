@@ -90,7 +90,7 @@ namespace Lb::parser {
 		};
 		template<typename Separator, typename... Rules>
 		using interleaved = typename interleaved_impl<seq<>, Separator, Rules...>::type;
-        
+
         struct CommentRule :
 			disable<
 				TAO_PEGTL_STRING("//"),
@@ -124,7 +124,7 @@ namespace Lb::parser {
 		{};
 
 		struct NameRule :
-			ascii::identifier 
+			ascii::identifier
 		{};
 
         struct LabelRule :
@@ -229,13 +229,17 @@ namespace Lb::parser {
 		{};
 
         struct ArrayAccess :
-			plus<
-				interleaved<
-					SpacesRule,
-					NameRule,
-					one<'['>,
-					InexplicableTRule,
-					one<']'>
+			interleaved<
+				SpacesRule,
+				NameRule,
+				plus<
+					interleaved<
+						SpacesRule,
+						one<'['>,
+						InexplicableTRule,
+						one<']'>
+					>,
+					SpacesRule
 				>
 			>
 		{};
@@ -244,7 +248,7 @@ namespace Lb::parser {
             interleaved<
 				SpacesRule,
 				VoidableTypeRule,
-				NamesRule 
+				NamesRule
 			>
         {};
 
@@ -253,7 +257,7 @@ namespace Lb::parser {
 				SpacesRule,
 				NameRule,
 				ArrowRule,
-				InexplicableTRule 
+				InexplicableTRule
 			>
 		{};
 
@@ -338,7 +342,7 @@ namespace Lb::parser {
 			>
 		{};
 
-        struct InstructionArrayStoreRule : 
+        struct InstructionArrayStoreRule :
 			interleaved<
 				SpacesRule,
 				ArrayAccess,
@@ -386,8 +390,8 @@ namespace Lb::parser {
 				one<')'>
 			>
 		{};
-        
-        struct InstructionTupleDeclarationRule : 
+
+        struct InstructionTupleDeclarationRule :
 			interleaved<
 				SpacesRule,
 				NameRule,
@@ -399,10 +403,10 @@ namespace Lb::parser {
 				one<')'>
 			>
 		{};
-		
+
 		struct InstructionScopeRule;
 
-        struct InstructionRule : 
+        struct InstructionRule :
 			sor<
 				InstructionFunctionCallRule,
                 InstructionFunctionCallAssignmentRule,
@@ -465,6 +469,7 @@ namespace Lb::parser {
                 one<'('>,
                 DefineArgsRule,
                 one<')'>,
+				LineSeparatorsWithCommentsRule,
                 InstructionScopeRule
             >
         {};
@@ -522,7 +527,7 @@ namespace Lb::parser {
 				FunctionRule,
 				ProgramRule
 			>
-		> 
+		>
         {};
     }
 
@@ -636,7 +641,7 @@ namespace Lb::parser {
 				make_voidable_type(n[0])
 			);
 		}
-		
+
 		Uptr<StatementAssignment> convert_instruction_pure_assignment_rule(const ParseNode &n) {
 			assert(*n.rule == typeid(rules::InstructionPureAssignmentRule));
 			return mkuptr<StatementAssignment>(
@@ -756,13 +761,8 @@ namespace Lb::parser {
 
 		Uptr<StatementAssignment> convert_instruction_tuple_declaration_rule(const ParseNode &n) {
 			assert(*n.rule == typeid(rules::InstructionTupleDeclarationRule));
-			Vec<Uptr<Expr>> call_args = make_call_args(n[1]);
-			if (call_args.size() != 1) {
-				std::cout << "Compiliation Error: new Tuple(...) expression expects exactly one argument\n";
-				exit(1);
-			}
 			return mkuptr<StatementAssignment>(
-				mkuptr<NewTuple>(mv(call_args[0])),
+				mkuptr<NewTuple>(convert_inexplicable_t_rule(n[1])),
 				make_indexing_expr(n[0])
 			);
 		}
@@ -854,7 +854,7 @@ namespace Lb::parser {
 			return program;
 		}
 	}
-    void parse_file(char *fileName, Opt<std::string> parse_tree_output) {
+    Uptr<Lb::hir::Program> parse_file(char *fileName, Opt<std::string> parse_tree_output) {
         using EntryPointRule = pegtl::must<rules::ProgramRule>;
         if (pegtl::analyze<EntryPointRule>() != 0) {
 			std::cerr << "There are problems with the grammar" << std::endl;
@@ -874,7 +874,6 @@ namespace Lb::parser {
 			}
 		}
 		Uptr<Lb::hir::Program> ptr = node_processor::convert_program((*root)[0]);
-		std::cout << ptr->to_string() << std::endl;
-		return;
+		return ptr;
     }
 }

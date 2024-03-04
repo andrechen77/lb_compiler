@@ -122,16 +122,17 @@
 			{}
 
 			void visit(StatementBlock &block) override {
-				for (const Uptr<Variable> &var : block.vars) {
-					this->la_instructions.push_back(get_user_var_declaration(*var));
-				}
 				for (const Uptr<Statement> &stmt : block.statements) {
 					stmt->accept(*this);
 				}
 			}
 			void visit(StatementDeclaration &stmt) override {
-				// do nothing because each variable declaration is going to get
-				// printed out at the top of the enclosing scope
+				for (const auto &[_, item_ref] : stmt.variables) {
+					const Nameable *referent = item_ref->get_referent().value();
+					const Variable *referent_var = dynamic_cast<const Variable *>(referent);
+					assert(referent_var != nullptr);
+					this->la_instructions.push_back(get_user_var_declaration(*referent_var));
+				}
 			}
 			void visit(StatementAssignment &stmt) override {
 				std::string translated;
@@ -150,16 +151,16 @@
 			}
 			void visit(StatementContinue &stmt) override {
 				const StatementWhile *innermost_loop = this->loop_stack.back();
-				std::string translated = "br " + get_unique_statement_label_name(*innermost_loop);
+				std::string translated = "br :" + get_unique_statement_label_name(*innermost_loop);
 				this->la_instructions.push_back(mv(translated));
 			}
 			void visit(StatementBreak &stmt) override {
 				const StatementWhile *innermost_loop = this->loop_stack.back();
-				std::string translated = "br " + get_prefixed_user_label_name(innermost_loop->end_label_name);
+				std::string translated = "br :" + get_prefixed_user_label_name(innermost_loop->end_label_name);
 				this->la_instructions.push_back(mv(translated));
 			}
 			void visit(StatementGoto &stmt) override {
-				std::string translated = "br " + get_prefixed_user_label_name(stmt.label_name);
+				std::string translated = "br :" + get_prefixed_user_label_name(stmt.label_name);
 				this->la_instructions.push_back(mv(translated));
 			}
 			void visit(StatementIf &stmt) override {
@@ -172,14 +173,16 @@
 				this->la_instructions.push_back("br tempcond :" + get_prefixed_user_label_name(stmt.then_label_name) + " :" + get_prefixed_user_label_name(stmt.else_label_name));
 			}
 			void visit(StatementLabel &stmt) override {
+				this->la_instructions.push_back(":" + get_prefixed_user_label_name(stmt.label_name));
+
 				auto body_iter = this->body_map.find(stmt.label_name);
-				if (body_iter == this->body_map.end()) {
+				if (body_iter != this->body_map.end()) {
 					this->loop_stack.push_back(body_iter->second);
 					return;
 				}
 
 				auto end_iter = this->end_map.find(stmt.label_name);
-				if (end_iter == this->end_map.end()) {
+				if (end_iter != this->end_map.end()) {
 					// because LB disgustingly allows you to interleave loops, this
 					// the popped loop is not guaranteed to be the same as the one
 					// that this label actually terminates, e.g.
@@ -194,8 +197,6 @@
 					this->loop_stack.pop_back();
 					return;
 				}
-
-				this->la_instructions.push_back(get_prefixed_user_label_name(stmt.label_name))
 			}
 			void visit(StatementWhile &stmt) override {
 				if (!this->has_temp_cond_var) {
@@ -203,9 +204,9 @@
 					this->has_temp_cond_var = true;
 				}
 
-				this->la_instructions.push_back(get_unique_statement_label_name(stmt));
+				this->la_instructions.push_back(":" + get_unique_statement_label_name(stmt));
 				this->la_instructions.push_back("tempcond <- " + translate_expression(*stmt.condition));
-				this->la_instructions.push_back("br tempcond :" + stmt.body_label_name + " :" + stmt.end_label_name);
+				this->la_instructions.push_back("br tempcond :" + get_prefixed_user_label_name(stmt.body_label_name) + " :" + get_prefixed_user_label_name(stmt.end_label_name));
 			}
 		};
 
@@ -216,7 +217,7 @@
 			result += lb_function.return_type_name + " " + lb_function.name + "(";
 			result += utils::format_comma_delineated_list(
 				lb_function.parameter_vars,
-				[](const Uptr<Variable> &var) { return get_unique_user_var_name(*var); }
+				[](const Uptr<Variable> &var) { return get_user_var_declaration(*var); }
 			);
 			result += ") ";
 
